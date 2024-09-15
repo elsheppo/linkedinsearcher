@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn URL Generator Dashboard</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .panel {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        h1, h2, h3 {
+            margin-bottom: 10px;
+            color: #0077b5;
+        }
+        .cluster {
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .cluster-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .cluster-header label {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .company-list {
+            margin-left: 20px;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #0077b5;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #006097;
+        }
+        .generated-url {
+            background-color: #f0f0f0;
+            padding: 10px;
+            word-break: break-all;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .alert {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted #0077b5;
+            cursor: help;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: #555;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .keyword-chip {
+            display: inline-block;
+            background-color: #e0e0e0;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 20px;
+        }
+        .keyword-chip button {
+            background-color: transparent;
+            color: #666;
+            border: none;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        .instructions {
+            background-color: #e1f5fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .instructions h2 {
+            color: #01579b;
+        }
+        .instructions ul {
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const companyClusters = [
+            {
+                name: "AI/ML Companies",
+                companies: [
+                    { id: "74126343", name: "Anthropic" },
+                    { id: "11130470", name: "OpenAI" },
+                    { id: "88007673", name: "Perplexity" },
+                    { id: "9230366", name: "Copy.ai" },
+                    { id: "67088679", name: "Writer" },
+                    { id: "11193683", name: "Hugging Face" }
+                ]
+            },
+            {
+                name: "Cloud/SaaS Companies",
+                companies: [
+                    { id: "1035", name: "Microsoft" },
+                    { id: "2382910", name: "AWS" },
+                    { id: "3477522", name: "Databricks" }
+                ]
+            },
+            {
+                name: "Hardware/Chip Companies",
+                companies: [
+                    { id: "1497", name: "AMD" },
+                    { id: "3608", name: "Nvidia" }
+                ]
+            },
+            {
+                name: "Tech Giants",
+                companies: [
+                    { id: "1009", name: "IBM" },
+                    { id: "10667", name: "Meta" },
+                ]
+            },
+            {
+                name: "Other Tech",
+                companies: [
+                    { id: "12994410", name: "Groq" },
+                    { id: "20708", name: "Palantir" }
+                ]
+            }
+        ];
+
+        const industries = [
+            { id: "96", name: "IT Consulting & IT Services" },
+            { id: "1862", name: "Marketing Services" },
+            { id: "11", name: "Business Consulting and Services" }
+        ];
+
+        const contentTypes = [
+            { id: "documents", name: "Documents" },
+            { id: "photos", name: "Images" },
+            { id: "videos", name: "Videos" }
+        ];
+
+        const datePostedOptions = [
+            { id: "past-24h", name: "Past 24 hours" },
+            { id: "past-week", name: "Past week" },
+            { id: "past-month", name: "Past month" }
+        ];
+
+        const predefinedKeywords = ["AI", "Machine Learning", "Data Science", "Deep Learning", "Natural Language Processing"];
+
+        function Tooltip({ text, children }) {
+            return (
+                <div className="tooltip">
+                    {children}
+                    <span className="tooltiptext">{text}</span>
+                </div>
+            );
+        }
+
+        function LinkedInURLGenerator() {
+            const [selectedCompanies, setSelectedCompanies] = React.useState([]);
+            const [selectedIndustries, setSelectedIndustries] = React.useState([]);
+            const [selectedContentType, setSelectedContentType] = React.useState("");
+            const [selectedDatePosted, setSelectedDatePosted] = React.useState("");
+            const [selectedKeywords, setSelectedKeywords] = React.useState([]);
+            const [customKeyword, setCustomKeyword] = React.useState("");
+            const [jobTitle, setJobTitle] = React.useState("");
+            const [generatedURL, setGeneratedURL] = React.useState("");
+
+            const generateURL = () => {
+                let url = "https://www.linkedin.com/search/results/content/?";
+                const params = new URLSearchParams();
+
+                if (selectedCompanies.length > 0) {
+                    params.append("authorCompany", `[${selectedCompanies.join(",")}]`);
+                }
+                if (selectedIndustries.length > 0) {
+                    params.append("authorIndustry", `[${selectedIndustries.join(",")}]`);
+                }
+                if (selectedContentType) {
+                    params.append("contentType", `"${selectedContentType}"`);
+                }
+                if (selectedDatePosted) {
+                    params.append("datePosted", `"${selectedDatePosted}"`);
+                }
+                if (selectedKeywords.length > 0) {
+                    params.append("keywords", selectedKeywords.join(" OR "));
+                }
+                if (jobTitle) {
+                    params.append("authorJobTitle", `"${jobTitle}"`);
+                }
+
+                params.append("origin", "FACETED_SEARCH");
+                params.append("sortBy", `"relevance"`);
+
+                setGeneratedURL(url + params.toString());
+            };
+
+            const copyToClipboard = () => {
+                navigator.clipboard.writeText(generatedURL).then(() => {
+                    document.getElementById('copied-alert').style.display = 'block';
+                    setTimeout(() => {
+                        document.getElementById('copied-alert').style.display = 'none';
+                    }, 3000);
+                });
+            };
+
+            const openLink = () => {
+                if (generatedURL) {
+                    window.open(generatedURL, '_blank');
+                }
+            };
+
+            const handleCompanyChange = (companyId) => {
+                setSelectedCompanies(prevSelected => 
+                    prevSelected.includes(companyId)
+                        ? prevSelected.filter(id => id !== companyId)
+                        : [...prevSelected, companyId]
+                );
+            };
+
+            const handleClusterChange = (cluster) => {
+                const clusterCompanyIds = cluster.companies.map(company => company.id);
+                setSelectedCompanies(prevSelected => {
+                    const newSelection = new Set(prevSelected);
+                    clusterCompanyIds.forEach(id => {
+                        if (newSelection.has(id)) {
+                            newSelection.delete(id);
+                        } else {
+                            newSelection.add(id);
+                        }
+                    });
+                    return Array.from(newSelection);
+                });
+            };
+
+            const handleKeywordChange = (keyword) => {
+                setSelectedKeywords(prevKeywords => 
+                    prevKeywords.includes(keyword)
+                        ? prevKeywords.filter(k => k !== keyword)
+                        : [...prevKeywords, keyword]
+                );
+            };
+
+            const handleCustomKeywordChange = (e) => {
+                setCustomKeyword(e.target.value);
+                if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                    addCustomKeyword();
+                }
+            };
+
+            const addCustomKeyword = () => {
+                if (customKeyword.trim() && !selectedKeywords.includes(customKeyword.trim())) {
+                    setSelectedKeywords([...selectedKeywords, customKeyword.trim()]);
+                    setCustomKeyword("");
+                }
+            };
+
+            const removeKeyword = (keyword) => {
+                setSelectedKeywords(selectedKeywords.filter(k => k !== keyword));
+            };
+
+            return (
+                <div>
+                    <h1>LinkedIn URL Generator Dashboard</h1>
+                    
+                    <div className="instructions">
+                        <h2>How to Use This Tool</h2>
+                        <ul>
+                            <li><strong>Select Companies:</strong> Choose companies or entire clusters to filter content by their employees. You can select individual companies or entire categories.</li>
+                            <li><strong>Select Industries:</strong> Choose industries to further refine your search.</li>
+                            <li><strong>Content Type:</strong> Specify the type of content you want to search for (documents, images, or videos).</li>
+                            <li><strong>Date Posted:</strong> Filter content based on when it was posted.</li>
+                            <li><strong>Keywords:</strong> Add keywords to focus your search. You can select from predefined options or add your own custom keywords.</li>
+                            <li><strong>Job Title:</strong> Enter a job title to filter content by the author's position.</li>
+                            <li><strong>Generate URL:</strong> After setting your preferences, click the "Generate URL" button to create your custom LinkedIn search URL.</li>
+                            <li><strong>Copy URL:</strong> Use the "Copy to Clipboard" button to easily copy the generated URL for use.</li>
+                        </ul>
+                        <p>Hover over section titles for more detailed information about each option.</p>
+                    </div>
+
+                    <div className="dashboard">
+                        <div className="panel">
+                            <Tooltip text="Select companies or entire clusters to filter content by their employees. This helps you focus on specific organizations or sectors.">
+                                <h2>Select Companies</h2>
+                            </Tooltip>
+                            {companyClusters.map((cluster, index) => (
+                                <div key={index} className="cluster">
+                                    <div className="cluster-header">
+                                        <input
+                                            type="checkbox"
+                                            checked={cluster.companies.every(company => selectedCompanies.includes(company.id))}
+                                            onChange={() => handleClusterChange(cluster)}
+                                        />
+                                        <label>{cluster.name}</label>
+                                    </div>
+                                    <div className="company-list">
+                                        {cluster.companies.map(company => (
+                                            <div key={company.id}>
+                                                <input
+                                                    type="checkbox"
+                                                    value={company.id}
+                                                    checked={selectedCompanies.includes(company.id)}
+                                                    onChange={() => handleCompanyChange(company.id)}
+                                                />
+                                                {company.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="panel">
+                            <Tooltip text="Select industries to filter content by. This allows you to focus on specific sectors or business areas.">
+                                <h2>Select Industries</h2>
+                            </Tooltip>
+                            {industries.map(industry => (
+                                <div key={industry.id}>
+                                    <input
+                                        type="checkbox"
+                                        value={industry.id}
+                                        checked={selectedIndustries.includes(industry.id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedIndustries([...selectedIndustries, industry.id]);
+                                            } else {
+                                                setSelectedIndustries(selectedIndustries.filter(id => id !== industry.id));
+                                            }
+                                        }}
+                                    />
+                                    {industry.name}
+                                </div>
+                            ))}
+
+                            <Tooltip text="Choose the type of content to search for. This helps you find specific formats like documents, images, or videos.">
+                                <h2>Content Type</h2>
+                            </Tooltip>
+                            <select
+                                value={selectedContentType}
+                                onChange={(e) => setSelectedContentType(e.target.value)}
+                            >
+                                <option value="">Select content type</option>
+                                {contentTypes.map(type => (
+                                <option key={type.id} value={type.id}>{type.name}</option>
+                            ))}
+                        </select>
+
+                        <Tooltip text="Filter content by when it was posted. This helps you find recent or timely information.">
+                            <h2>Date Posted</h2>
+                        </Tooltip>
+                        <select
+                            value={selectedDatePosted}
+                            onChange={(e) => setSelectedDatePosted(e.target.value)}
+                        >
+                            <option value="">Select date range</option>
+                            {datePostedOptions.map(option => (
+                                <option key={option.id} value={option.id}>{option.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="panel">
+                        <Tooltip text="Select or add keywords to search for. This narrows down your search to specific topics or themes.">
+                            <h2>Keywords</h2>
+                        </Tooltip>
+                        <div>
+                            {predefinedKeywords.map(keyword => (
+                                <label key={keyword} style={{display: 'block', marginBottom: '5px'}}>
+                                    <input
+                                        type="checkbox"
+                                        value={keyword}
+                                        checked={selectedKeywords.includes(keyword)}
+                                        onChange={() => handleKeywordChange(keyword)}
+                                    />
+                                    {keyword}
+                                </label>
+                            ))}
+                        </div>
+                        <input
+                            type="text"
+                            value={customKeyword}
+                            onChange={handleCustomKeywordChange}
+                            onKeyPress={handleCustomKeywordChange}
+                            placeholder="Type custom keyword and press Enter"
+                        />
+                        <div>
+                            {selectedKeywords.map(keyword => (
+                                <span key={keyword} className="keyword-chip">
+                                    {keyword}
+                                    <button onClick={() => removeKeyword(keyword)}>×</button>
+                                </span>
+                            ))}
+                        </div>
+
+                        <Tooltip text="Filter content by the job title of the author. This helps you find content from specific roles or positions.">
+                            <h2>Job Title</h2>
+                        </Tooltip>
+                        <input
+                            type="text"
+                            value={jobTitle}
+                            onChange={(e) => setJobTitle(e.target.value)}
+                            placeholder="Enter job title"
+                        />
+                    </div>
+
+                    <div className="panel full-width">
+                        <button onClick={generateURL}>Generate URL</button>
+                        {generatedURL && (
+                            <div>
+                                <h2>Generated URL:</h2>
+                                <div className="generated-url">{generatedURL}</div>
+                                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                    <button onClick={copyToClipboard}>Copy to Clipboard</button>
+                                    <button onClick={openLink}>Open Link</button>
+                                </div>
+                                <div id="copied-alert" className="alert">URL copied to clipboard!</div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    ReactDOM.render(<LinkedInURLGenerator />, document.getElementById('root'));
+</script>
